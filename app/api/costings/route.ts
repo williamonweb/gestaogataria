@@ -1,0 +1,9 @@
+import {withDatabase} from '../../lib/database';
+import {requireUser,safeMutation,jsonError,audit} from '../../lib/auth';
+export const runtime='nodejs';
+export const dynamic='force-dynamic';
+
+import {calculateCosts} from '../../lib/costs';
+const reply=(x:any,s=200)=>Response.json(x,{status:s,headers:{'Cache-Control':'no-store'}});
+export async function GET(){try{return await withDatabase(async db=>{await requireUser(db);const rows=await db.prepare('SELECT * FROM costings ORDER BY updated DESC').all();return reply({costings:rows.results.map((x:any)=>({...x,payload:JSON.parse(x.payload)}))});});}catch(e){return jsonError(e);}}
+export async function POST(req:Request){try{safeMutation(req);const b=await req.json() as any;return await withDatabase(async db=>{const actor=await requireUser(db);if(typeof b.name!=='string'||!b.name.trim()||b.name.length>150)throw Error('Dê um nome para esta simulação.');calculateCosts(b.payload);const payload=JSON.stringify(b.payload);if(payload.length>10000)throw Error('Dados da simulação muito extensos.');const now=new Date().toISOString(),id=b.id||crypto.randomUUID();if(b.id){const r=await db.prepare('UPDATE costings SET name=?,payload=?,updated=?,revision=revision+1 WHERE id=? AND revision=?').bind(b.name.trim(),payload,now,id,b.revision).run();if(!r.meta.changes)return reply({error:'Esta simulação foi alterada em outra tela. Abra novamente.'},409);}else{await db.prepare('INSERT INTO costings(id,name,payload,created,updated) VALUES(?,?,?,?,?)').bind(id,b.name.trim(),payload,now,now).run();}await audit(db,actor.id,'simulação de custo salva');return reply(await db.prepare('SELECT * FROM costings WHERE id=?').bind(id).first());});}catch(e){if(e instanceof Error&&!('code' in e)&&e.name!=='HttpError')return reply({error:e.message},400);return jsonError(e);}}

@@ -1,0 +1,2 @@
+import {cookies} from 'next/headers';import {withDatabase} from '../../../lib/database';import {safeMutation,clearSessionCookie,cookieName,jsonError} from '../../../lib/auth';import {tokenHash} from '../../../lib/passwords';
+export async function POST(req:Request){try{safeMutation(req);const token=(await cookies()).get(cookieName)?.value;if(token)await withDatabase(db=>db.prepare('DELETE FROM sessions WHERE token_hash=?').bind(tokenHash(token)).run());await clearSessionCookie();return Response.json({ok:true});}catch(e){return jsonError(e)}}

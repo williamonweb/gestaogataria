@@ -1,0 +1,2 @@
+import {withDatabase} from '../../lib/database';import {requireUser,jsonError} from '../../lib/auth';export const dynamic='force-dynamic';
+export async function GET(){try{return Response.json(await withDatabase(async db=>{await requireUser(db,true);return {logs:(await db.prepare('SELECT a.id,a.action,a.created_at,u.name FROM audit_log a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.created_at DESC LIMIT 100').all()).results}}),{headers:{'Cache-Control':'no-store'}})}catch(e){return jsonError(e)}}

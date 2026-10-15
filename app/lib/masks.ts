@@ -1,0 +1,4 @@
+/** Máscaras de cadastro; não verificam a validade cadastral do documento. */
+const digits=(value:unknown)=>String(value??'').replace(/\D/g,'');
+export function maskPhone(value:unknown){let n=digits(value);if((n.length===12||n.length===13)&&n.startsWith('55'))n=n.slice(2);n=n.slice(0,11);if(!n)return '';if(n.length<=2)return '('+n;const ddd=n.slice(0,2),body=n.slice(2),split=n.length===11?5:4;return '('+ddd+') '+body.slice(0,split)+(body.length>split?'-'+body.slice(split):'');}
+export function maskDocument(value:unknown){const n=digits(value).slice(0,14);if(n.length<=11){return n.replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/(\d{3})\.(\d{3})\.(\d{3})(\d)/,'$1.$2.$3-$4');}return n.replace(/^(\d{2})(\d)/,'$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/,'$1.$2.$3').replace(/^(\d{2})\.(\d{3})\.(\d{3})(\d)/,'$1.$2.$3/$4').replace(/(\d{4})(\d{1,2})$/,'$1-$2');}

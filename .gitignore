@@ -1,0 +1,13 @@
+node_modules/
+.next/
+.vercel/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+backups/
+*Backup*.json
+*.log
+.DS_Store
+
+.test-build/
