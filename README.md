@@ -2,6 +2,27 @@
 
 Sistema interno de pedidos, orçamentos, caixa e formação de preços, preparado para **Next.js + Vercel + Neon PostgreSQL**. Este projeto é separado do site público da Gataria.
 
+## Atualizar uma instalação existente para a versão 1.1
+
+Se o projeto já está no GitHub/Vercel, não crie outro repositório ou banco.
+
+1. Em **Configurações → Backup**, exporte os registros atuais.
+2. Extraia o ZIP e copie o conteúdo da pasta `gataria-gestao` sobre a raiz do projeto existente. Preserve seu `.env` e a pasta `.git`.
+3. No **SQL Editor do mesmo Neon**, execute `db/002_profit_sharing.sql` antes de publicar o código novo. A migração adiciona tabelas e preserva os registros existentes. Alternativa: com `DATABASE_URL` correta no `.env`, rode `npm run db:migrate`.
+4. Dentro do projeto, no Git Bash:
+
+```bash
+npm ci
+npm run check
+npm test
+npm run build
+git add .
+git commit -m "Adiciona divisao de lucros e relatorio de retiradas"
+git push
+```
+
+A Vercel publica pelo repositório já conectado. Não repita a configuração inicial dos usuários.
+
 ## O que está pronto
 
 - Tela de login; primeiro cadastro de **William** (`william`) e **Jeslie** (`jeslie`). Você define as duas senhas.
@@ -10,6 +31,8 @@ Sistema interno de pedidos, orçamentos, caixa e formação de preços, preparad
 - Preço independente por tamanho (inclusive GG), máscaras de telefone/CPF/CNPJ.
 - Custos, taxas, margem e simulações de preço salvas.
 - Configurações da empresa e condições padrão dos novos orçamentos.
+- Lucro por pedido, reserva percentual e divisão igual entre William e Jeslie.
+- Relatório de saldos, retiradas parciais, histórico por pessoa/período e exportação CSV.
 - Exportação/importação de registros e histórico de ações por usuário.
 
 ## 1. Salvar os registros do painel atual
@@ -26,7 +49,7 @@ A importação preserva IDs, itens, preços por tamanho, imagens das propostas, 
 ## 2. Criar o banco no Neon
 
 1. Crie um projeto/banco para **Gataria Gestão**.
-2. No **SQL Editor**, cole e execute o conteúdo de `db/001_initial.sql`.
+2. No **SQL Editor**, execute `db/001_initial.sql` e depois `db/002_profit_sharing.sql`, nessa ordem.
 3. Copie a connection string PostgreSQL com `sslmode=require` (a conexão pooled é adequada para a Vercel).
 
 Alternativa ao SQL Editor: configure `DATABASE_URL` no `.env` local e rode `npm run db:migrate`. O comando aplica apenas migrações pendentes e não apaga registros. Não execute `reset`, `drop` ou qualquer comando de limpeza para atualizar o sistema.
@@ -72,7 +95,7 @@ Se criar os usuários localmente apontando para o mesmo banco Neon de produção
 
 ## 4. Subir para um NOVO repositório GitHub
 
-Crie no GitHub um repositório **privado** chamado `gataria-gestao`, sem README inicial. Não sobreponha o repositório do site público `gataria`.
+Crie no GitHub um repositório **privado** chamado `gestaogataria`, sem README inicial. Não sobreponha o repositório do site público `gataria`.
 
 No Git Bash, dentro da pasta extraída:
 
@@ -81,7 +104,7 @@ git init
 git branch -M main
 git add .
 git commit -m "Gataria Gestao: pedidos, orcamentos, caixa e usuarios"
-git remote add origin https://github.com/williamonweb/gataria-gestao.git
+git remote add origin https://github.com/williamonweb/gestaogataria.git
 git push -u origin main
 ```
 
@@ -89,7 +112,7 @@ A autenticação do GitHub pode ser solicitada. `.env`, backups, dependências e
 
 ## 5. Publicar na Vercel
 
-1. **Add New Project → Import Git Repository → gataria-gestao**.
+1. **Add New Project → Import Git Repository → gestaogataria**.
 2. Framework: **Next.js**. Root Directory: a raiz do projeto.
 3. Install Command: `npm ci`. Build Command: `npm run build`. Output Directory: deixe o padrão do Next.js. Node.js: 22.x ou 24.x.
 4. Em **Environment Variables**, cadastre `DATABASE_URL`, `AUTH_SECRET` e `SETUP_TOKEN` com os mesmos valores do ambiente escolhido. Cadastre `APP_URL` com a URL HTTPS final da Vercel (ou domínio próprio), sem barra no final. Nenhuma variável usa `NEXT_PUBLIC_`.
@@ -113,17 +136,17 @@ Para backups maiores, use o importador local com o `.env` apontando para o banco
 npm run db:import -- "D:/backups/Gataria-Backup-Registros.json"
 ```
 
-O arquivo de backup não contém usuários ou senhas. Os acessos são criados na configuração inicial. Backups do novo sistema também incluem configurações da empresa. Importar não altera configurações já existentes.
+O arquivo de backup não contém usuários ou senhas. Os acessos são criados na configuração inicial. Backups do novo sistema também incluem configurações da empresa, custos por pedido, divisões de lucro e retiradas. Backups antigos sem esses campos continuam aceitos. Importar não altera configurações já existentes.
 
 ## 7. Configurações e usuários
 
-- **Dados da Gataria:** nome, CPF/CNPJ, WhatsApp, descrição, prazo padrão, validade e percentual de entrada. Essas condições afetam somente novos orçamentos.
+- **Dados da Gataria:** nome, CPF/CNPJ, WhatsApp, descrição, prazo padrão, validade, percentual de entrada e percentual de reserva sobre o lucro. Essas condições afetam somente novos orçamentos.
 - **Usuários:** adicionar, editar, definir perfil, redefinir senha e desativar. A senha inicial/redefinida deve ser trocada pelo usuário após o login.
 - **Minha senha:** exige a senha atual e encerra as outras sessões.
 - **Backup:** exporta registros completos e importa de forma aditiva.
 - **Histórico:** últimas 100 ações registradas por usuário.
 
-Operadores podem trabalhar com pedidos, orçamentos, caixa e custos, consultar dados da empresa e alterar a própria senha. Só administradores gerenciam usuários, alteram configurações, exportam/importam o banco e veem o histórico. Não há cadastro público aberto.
+Operadores podem trabalhar com pedidos, orçamentos, caixa e custos, consultar dados da empresa e alterar a própria senha. Só administradores confirmam custos reais, liberam divisões, registram retiradas, consultam o relatório completo, gerenciam usuários, alteram configurações, exportam/importam o banco e veem o histórico. Não há cadastro público aberto.
 
 Para recuperar um administrador se todos esquecerem a senha, use o `.env` local e execute:
 
@@ -132,6 +155,22 @@ npm run user:recover -- william
 ```
 
 A nova senha é solicitada em um prompt oculto. Não coloque senha na linha de comando. O usuário deverá trocá-la no próximo login.
+
+## Lucro por pedido e retiradas
+
+Abra um pedido e use **Lucro e divisão do pedido**. Informe os custos reais totais de camisetas/produtos, DTF, embalagens, fretes e outros (incluindo taxas e despesas rateadas). A simulação de preço em `/custos` continua separada dos custos reais do pedido.
+
+A regra inicial é: venda menos custos = lucro; 30% do lucro fica para a Gataria e os 70% restantes são divididos igualmente. Com R$ 100 de lucro, ficam R$ 30 na empresa, R$ 35 para William e R$ 35 para Jeslie. Eventual centavo indivisível fica na reserva. Se houver prejuízo ou lucro zero, nenhuma retirada é gerada.
+
+- Enquanto o pedido estiver em andamento, os valores são uma previsão. Marque os custos como confirmados e salve.
+- **Liberar divisão para retirada** exige pedido entregue, totalmente recebido e custos confirmados. A liberação fixa os valores do fechamento, bloqueando a edição do pedido e dos custos reais.
+- Em **Configurações → Dados da Gataria**, o percentual de reserva pode ser alterado. Divisões já liberadas mantêm seu percentual original.
+- No menu **Lucros e retiradas**, veja o total previsto, disponível e já pago de cada pessoa. A reserva acumulada é informativa; o saldo do caixa aparece separado.
+- Selecione pedidos liberados e clique em **Registrar retirada**. Escolha a pessoa, valor (integral ou parcial), data e forma. Confirme depois de realizar o pagamento. O sistema registra uma saída no caixa e reduz o saldo dessa pessoa nos pedidos escolhidos; não efetua transferência bancária.
+- O sistema impede retirar mais que o saldo individual dos pedidos selecionados ou que o saldo registrado no caixa. A distribuição é alocada primeiro aos fechamentos mais antigos dentre os pedidos selecionados.
+- A aba **Pagamentos realizados** permite filtrar por pessoa e data do pagamento, mostra totais por pessoa no período e exporta CSV. A aba **Saldos por pedido** filtra pela data de cadastro do pedido; os cartões superiores mostram totais gerais.
+
+**Apuração de lucro e movimentação de caixa são separadas:** salvar custos ou liberar a divisão não lança despesas no caixa. Registre pagamentos aos fornecedores no Caixa. Retiradas registradas pelo relatório já geram a saída; não lance a mesma retirada novamente manualmente.
 
 ## Atualizações
 
